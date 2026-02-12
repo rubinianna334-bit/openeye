@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Dashboard - Event Bridge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8">
+    <div class="max-w-6xl mx-auto flex flex-col h-full">
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
+                Bridge Monitor
+            </h1>
+            <a href="/" class="text-sm text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Home
+            </a>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-160px)]">
+            <!-- SSE Panel -->
+            <div class="glass rounded-3xl p-6 flex flex-col overflow-hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold flex items-center gap-2">
+                        <span id="sse-status"
+                            class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] transition-all duration-500"></span>
+                        Server-Sent Events
+                    </h2>
+                    <span class="text-xs font-mono text-slate-500">/events</span>
+                </div>
+                <div id="sse-messages" class="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3 pr-2">
+                    <p class="text-slate-500 text-sm italic text-center my-auto px-10">Waiting for SSE events...</p>
+                </div>
+            </div>
+
+            <!-- WebSocket Panel -->
+            <div class="glass rounded-3xl p-6 flex flex-col overflow-hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold flex items-center gap-2">
+                        <span id="ws-status"
+                            class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] transition-all duration-500"></span>
+                        WebSockets
+                    </h2>
+                    <span class="text-xs font-mono text-slate-500">WS Gateway</span>
+                </div>
+                <div id="ws-messages" class="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3 pr-2">
+                    <p class="text-slate-500 text-sm italic text-center my-auto px-10">Waiting for WebSocket messages...
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sseMessages = document.getElementById('sse-messages');
+        const sseStatus = document.getElementById('sse-status');
+        const wsMessages = document.getElementById('ws-messages');
+        const wsStatus = document.getElementById('ws-status');
+
+        function updateStatus(el, connected) {
+            if (connected) {
+                el.classList.remove('bg-red-500', 'shadow-[0_0_10px_rgba(239,68,68,0.5)]');
+                el.classList.add('bg-emerald-500', 'shadow-[0_0_10px_rgba(16,185,129,0.5)]');
+            } else {
+                el.classList.add('bg-red-500', 'shadow-[0_0_10px_rgba(239,68,68,0.5)]');
+                el.classList.remove('bg-emerald-500', 'shadow-[0_0_10px_rgba(16,185,129,0.5)]');
+            }
+        }
+
+        function addMessage(container, data) {
+            // Remove initial placeholder if present
+            const placeholder = container.querySelector('p');
+            if (placeholder) placeholder.remove();
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'bg-slate-800/40 border border-white/5 p-4 rounded-xl animate-in slide-in-from-left-2 duration-300';
+
+            const timestamp = data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+
+            msgDiv.innerHTML = `
+                <div class="flex justify-between items-start mb-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-cyan-500">${data.source || 'Event'}</span>
+                    <span class="text-[10px] text-slate-500">${timestamp}</span>
+                </div>
+                <pre class="text-sm font-mono text-slate-300 overflow-x-auto">${JSON.stringify(data, (key, value) => key === 'timestamp' || key === 'source' ? undefined : value, 2)}</pre>
+            `;
+            container.prepend(msgDiv);
+        }
+
+        // --- SSE Setup ---
+        const eventSource = new EventSource('/events');
+
+        eventSource.onopen = () => {
+            updateStatus(sseStatus, true);
+            console.log('SSE connected');
+        };
+
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            addMessage(sseMessages, data);
+        };
+
+        eventSource.onerror = (err) => {
+            updateStatus(sseStatus, false);
+            console.error('SSE Error:', err);
+        };
+
+        // --- WebSocket Setup ---
+        const wsUrl = `ws://${window.location.host}`;
+        const socket = new WebSocket(wsUrl);
+
+        socket.onopen = () => {
+            updateStatus(wsStatus, true);
+            console.log('WebSocket connected');
+        };
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            addMessage(wsMessages, data);
+        };
+
+        socket.onclose = (event) => {
+            updateStatus(wsStatus, false);
+            console.log('WebSocket disconnected', event.code);
+        };
+
+        socket.onerror = (err) => {
+            updateStatus(wsStatus, false);
+            console.error('WebSocket Error:', err);
+        };
+    </script>
+</body>
+
+</html>
