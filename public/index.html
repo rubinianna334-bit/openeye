@@ -47,7 +47,7 @@
         <h1 class="text-white text-9xl font-black tracking-[0.2em] uppercase animate-pulse">
             OPENEYE
         </h1>
-        <h2 class="text-white text-[4vw] font-black tracking-[0.3em] uppercase mt-8 leading-none">
+        <h2 class="text-white text-1xl font-black tracking-[0.3em] uppercase mt-3 leading-none animate-pulse">
             only when the notification arrives
         </h2>
     </div>
@@ -76,6 +76,23 @@
     </div>
 
     <script>
+        // Avvia tutto automaticamente al caricamento
+        window.addEventListener('DOMContentLoaded', () => {
+            experienceStarted = true;
+
+            // Fa partire il video a occhi chiusi
+            videoLoop.play().catch(e => console.log("Clicca sulla pagina per attivare l'audio"));
+
+            // Prepara il video dell'apertura per non avere scatti
+            videoAction.load();
+
+            connectSSE();
+        });
+
+        // TEST VELOCE: Se premi la BARRA SPAZIATRICE ora gli occhi si apriranno
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') triggerEyeOpening();
+        });
         const videoLoop = document.getElementById('video-loop');
         const videoAction = document.getElementById('video-action');
         const statusBadge = document.getElementById('status-badge');
