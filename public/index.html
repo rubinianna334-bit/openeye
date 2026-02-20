@@ -213,7 +213,37 @@
                 });
 
                 connectSSE();
+
             }
+            // Gestione avvio e test (PC e Telefono)
+            const avviaTutto = () => {
+                if (!experienceStarted) {
+                    experienceStarted = true;
+                    // Nascondi intro se presente
+                    if (document.getElementById('intro-overlay')) {
+                        document.getElementById('intro-overlay').style.display = 'none';
+                    }
+                    videoLoop.play();
+                    connectSSE();
+                }
+                triggerEyeOpening(); // Fa aprire gli occhi per test
+            };
+
+            // Avvio automatico al caricamento
+            window.addEventListener('load', () => {
+                videoLoop.play().then(() => {
+                    experienceStarted = true;
+                    connectSSE();
+                }).catch(() => console.log("In attesa di un tocco per partire..."));
+            });
+
+            // Ascolta il TOCCO (Telefono) e il CLIC (Mouse)
+            window.addEventListener('click', avviaTutto);
+
+            // Ascolta la SPAZIO (Tastiera PC)
+            window.addEventListener('keydown', (e) => {
+                if (e.code === 'Space') avviaTutto();
+            });
         };
 
         // Avvia al primo clic o tocco ovunque sulla pagina
