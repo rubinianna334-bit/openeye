@@ -4,12 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anna Rubini</title>
+    <title>Anna Rubini - OpenEye</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background-color: black;
         }
 
         .glass {
@@ -17,147 +18,170 @@
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
+
+        /* Animazione per la scritta centrale */
+        .fade-out-custom {
+            animation: fadeOut 2s ease-in-out forwards;
+            animation-delay: 8s;
+            /* Inizia a sfumare dopo 8 secondi per sparire a 10 */
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+                visibility: hidden;
+            }
+        }
     </style>
 </head>
 
 <body class="bg-black text-white min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
-    <!-- Splash Overlay -->
-    <div id="splash"
-        class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950 transition-all duration-700">
-        <div class="text-center animate-in fade-in zoom-in duration-1000">
-            <h2
-                class="text-4xl font-black mb-8 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
-                SYSTEM READY
-            </h2>
-            <button id="start-btn"
-                class="glass px-12 py-5 rounded-full font-black text-xl hover:bg-cyan-500 hover:text-black transition-all hover:scale-110 shadow-[0_0_30px_rgba(34,211,238,0.2)]">
-                START EXPERIENCE
-            </button>
-            <p class="mt-6 text-slate-500 text-xs tracking-widest">
-                INTERACTION REQUIRED FOR AUDIO/VIDEO
-            </p>
+
+    <div id="intro-overlay" class="fixed inset-0 z-[60] bg-black flex items-center justify-center fade-out-custom">
+        <h1 class="text-white text-5xl font-black tracking-[0.2em] uppercase animate-pulse">
+            OPENEYE
+        </h1>
+    </div>
+
+
+    </div>
+
+    <div class="z-10 text-center">
+        <audio id="alert-sound" src="assets/alert.mp3" preload="auto"></audio>
+        <div id="status-badge"
+            class="glass px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest text-white mb-4 inline-block opacity-0 transition-opacity duration-500">
+            Notification Received
         </div>
     </div>
 
-    <!-- UI Overlay -->
-    <div class="z-10 text-center animate-in fade-in duration-1000">
-        <audio id="alert-sound" src="assets/alert.mp3" preload="auto"></audio>
-        <div id="status-badge"
-            class="glass px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest text-white mb-4 inline-block opacity-0 transition-opacity">
-            Notification
-        </div>
-        <Z </div>
-            <!-- Video Background Container -->
-            <div class="fixed inset-0 z-0 overflow-hidden">
-                <video id="main-video" muted playsinline
-                    class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 min-w-full min-h-full object-cover brightness-[0.5]">
-                    <source src="assets/video.mp4" type="video/mp4">
-                </video>
-            </div>
+    <div class="fixed inset-0 z-0 overflow-hidden bg-black">
+        <video id="video-loop" autoplay playsinline loop
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 min-w-full min-h-full object-cover brightness-[0.5] transition-opacity duration-500 opacity-100">
+            <source src="assets/loop_occhi_chiusi.mp4" type="video/mp4">
+        </video>
 
+        <video id="video-action" muted playsinline
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 min-w-full min-h-full object-cover brightness-[0.5] transition-opacity duration-500 opacity-0">
+            <source src="assets/apertura_occhi.mp4" type="video/mp4">
+        </video>
+    </div>
 
-            <script>
-                const video = document.getElementById('main-video');
-                const sseDot = document.getElementById('sse-dot');
-                const statusBadge = document.getElementById('status-badge');
-                const alertSound = document.getElementById('alert-sound');
-                const splash = document.getElementById('splash');
-                const startBtn = document.getElementById('start-btn');
+    <script>
+        const videoLoop = document.getElementById('video-loop');
+        const videoAction = document.getElementById('video-action');
+        const statusBadge = document.getElementById('status-badge');
+        const alertSound = document.getElementById('alert-sound');
+        const splash = document.getElementById('splash');
+        const startBtn = document.getElementById('start-btn');
+        const introOverlay = document.getElementById('intro-overlay');
 
-                let config = null;
-                let currentState = 'idle';
-                let experienceStarted = false;
+        let experienceStarted = false;
 
-                // Load configuration
-                fetch('assets/video-config.json')
-                    .then(res => res.json())
-                    .then(data => {
-                        config = data;
-                        console.log('Video config loaded:', config);
-                    })
-                    .catch(err => console.error('Failed to load video config:', err));
+        // Gestione automatica rimozione intro dopo 10 secondi
+        setTimeout(() => {
+            introOverlay.style.display = 'none';
+        }, 10500);
 
-                // Start Experience on Click
-                startBtn.onclick = () => {
-                    if (!config) return;
+        // Funzione per avviare l'esperienza
+        startBtn.onclick = () => {
+            experienceStarted = true;
+            splash.classList.add('opacity-0', 'pointer-events-none', 'scale-110');
 
-                    experienceStarted = true;
-                    splash.classList.add('opacity-0', 'pointer-events-none', 'scale-110');
+            // Avvia il loop
+            videoLoop.play();
 
-                    // Initialize media
-                    video.currentTime = config.idle.start;
-                    video.play();
+            // "Prime" media per evitare ritardi sui browser mobile
+            videoAction.play().then(() => { videoAction.pause(); videoAction.currentTime = 0; });
+            alertSound.play().then(() => { alertSound.pause(); alertSound.currentTime = 0; });
 
-                    // "Prime" the audio for later play (some browsers need this)
-                    alertSound.play().then(() => {
-                        alertSound.pause();
-                        alertSound.currentTime = 0;
-                    }).catch(e => console.log('Audio priming skipped:', e));
+            connectSSE();
+        };
 
-                    startPlaybackEngine();
-                    connectSSE();
-                };
+        // Logica per l'apertura occhi (Triggerata da SSE o test)
+        function triggerEyeOpening() {
+            if (!experienceStarted) return;
 
-                function startPlaybackEngine() {
-                    // Using requestAnimationFrame for precise timecode tracking
-                    function checkTime() {
-                        if (!config || !experienceStarted) return requestAnimationFrame(checkTime);
+            console.log('Switching to Eye Opening Video...');
 
-                        const currentTime = video.currentTime;
+            // 1. Mostra video azione, nascondi loop
+            videoAction.classList.replace('opacity-0', 'opacity-100');
+            videoLoop.classList.replace('opacity-100', 'opacity-0');
 
-                        if (currentState === 'idle') {
-                            if (currentTime >= config.idle.end) {
-                                video.currentTime = config.idle.start;
-                                video.play();
-                            }
-                        } else if (currentState === 'event') {
-                            if (currentTime >= config.event.end) {
-                                console.log('Event finished, returning to idle');
-                                currentState = 'idle';
-                                video.currentTime = config.idle.start;
-                                video.play();
-                                statusBadge.classList.add('opacity-0');
-                            }
-                        }
+            // 2. Play video e audio
+            videoAction.currentTime = 0;
+            videoAction.play();
+            alertSound.play().catch(e => console.log('Audio error:', e));
+            statusBadge.classList.replace('opacity-0', 'opacity-100');
 
-                        requestAnimationFrame(checkTime);
-                    }
-                    requestAnimationFrame(checkTime);
-                }
+            // 3. Quando finisce l'apertura, torna al loop
+            videoAction.onended = () => {
+                videoLoop.classList.replace('opacity-0', 'opacity-100');
+                videoAction.classList.replace('opacity-100', 'opacity-0');
+                videoLoop.play();
+                statusBadge.classList.replace('opacity-100', 'opacity-0');
+            };
+        }
 
-                // SSE Connection to trigger "event" state
-                function connectSSE() {
-                    const eventSource = new EventSource('/events');
+        // Connessione SSE al tuo server porta 3100
+        function connectSSE() {
+            const eventSource = new EventSource('http://localhost:3100/events');
 
-                    eventSource.onopen = () => {
-                        sseDot.classList.replace('bg-red-500', 'bg-emerald-500');
-                        console.log('SSE connected for video trigger');
-                    };
+            eventSource.onmessage = (event) => {
+                triggerEyeOpening();
+            };
 
-                    eventSource.onmessage = (event) => {
-                        console.log('Event received! Switching video state...');
-                        if (config && experienceStarted) {
-                            currentState = 'event';
-                            video.currentTime = config.event.start;
-                            video.play();
+            eventSource.onerror = (err) => {
+                console.error('SSE connection lost. Retrying...');
+                eventSource.close();
+                setTimeout(connectSSE, 3000);
+            };
+        }
 
-                            // Play audio alert
-                            alertSound.play().catch(e => console.log('Audio playback failed:', e));
+        // TEST RAPIDO: Premi "Barra Spaziatrice" per testare l'apertura senza aspettare SSE
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') triggerEyeOpening();
+        });
+        // Aggiungi questo in fondo al tuo <script>
+        const startExperience = () => {
+            if (!experienceStarted) {
+                experienceStarted = true;
 
-                            // Show UI feedback
-                            statusBadge.classList.remove('opacity-0');
-                        }
-                    };
+                // Nascondi l'intro se è ancora visibile
+                introOverlay.style.display = 'none';
 
-                    eventSource.onerror = (err) => {
-                        sseDot.classList.replace('bg-emerald-500', 'bg-red-500');
-                        console.error('SSE Error:', err);
-                        // Attempt to reconnect after 3 seconds
-                        eventSource.close();
-                        setTimeout(connectSSE, 3000);
-                    };
-                }
-            </script>
+                // Avvia il loop
+                videoLoop.play().catch(error => {
+                    console.error("Errore nell'avvio del video:", error);
+                });
+
+                // Pre-carica il video dell'apertura
+                videoAction.play().then(() => {
+                    videoAction.pause();
+                    videoAction.currentTime = 0;
+                });
+
+                connectSSE();
+            }
+        };
+
+        // Avvia al primo clic o tocco ovunque sulla pagina
+        window.addEventListener('click', startExperience);
+        window.addEventListener('touchstart', startExperience);
+
+        // Prova anche l'avvio automatico (funziona solo se il video è MUTED)
+        window.onload = () => {
+            videoLoop.play().then(() => {
+                experienceStarted = true;
+                connectSSE();
+            }).catch(e => {
+                console.log("Autoplay bloccato, attesa clic dell'utente.");
+            });
+        };
+    </script>
 </body>
 
 </html>
