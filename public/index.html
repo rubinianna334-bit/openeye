@@ -188,6 +188,11 @@
         window.addEventListener('keydown', (e) => {
             if (e.code === 'Space') triggerEyeOpening();
         });
+        // TEST PER TELEFONO: Tocco sullo schermo
+        // Si attiverà ogni volta che tocchi lo schermo con il dito
+        window.addEventListener('touchstart', () => {
+            triggerEyeOpening();
+        });
         // Aggiungi questo in fondo al tuo <script>
         const startExperience = () => {
             if (!experienceStarted) {
