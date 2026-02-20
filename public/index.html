@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anna Rubini - OpenEye</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -41,10 +42,14 @@
 
 <body class="bg-black text-white min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
 
-    <div id="intro-overlay" class="fixed inset-0 z-[60] bg-black flex items-center justify-center fade-out-custom">
-        <h1 class="text-white text-9xl font-black tracking-[0.2em] uppercase animate-pulse font-bold">
+    <div id="intro-overlay"
+        class="fixed inset-0 z-[60] bg-black flex flex-col items-center justify-center fade-out-custom">
+        <h1 class="text-white text-9xl font-black tracking-[0.2em] uppercase animate-pulse">
             OPENEYE
         </h1>
+        <h2 class="text-white text-[4vw] font-black tracking-[0.3em] uppercase mt-8 leading-none">
+            only when the notification arrives
+        </h2>
     </div>
 
 
@@ -76,8 +81,29 @@
         const statusBadge = document.getElementById('status-badge');
         const alertSound = document.getElementById('alert-sound');
         const splash = document.getElementById('splash');
-        const startBtn = document.getElementById('start-btn');
+
         const introOverlay = document.getElementById('intro-overlay');
+        // Avvia l'esperienza automaticamente al caricamento
+        window.addEventListener('load', () => {
+            experienceStarted = true;
+
+            // Avvia il loop (occhi chiusi)
+            videoLoop.play().catch(e => console.log("Autoplay bloccato, serve un clic"));
+
+            // Pre-carica il video azione e l'audio
+            videoAction.play().then(() => { videoAction.pause(); videoAction.currentTime = 0; });
+            alertSound.play().then(() => { alertSound.pause(); alertSound.currentTime = 0; });
+
+            connectSSE();
+        });
+
+        // Opzionale: Se il browser blocca l'autoplay, avvia al primo clic ovunque
+        window.addEventListener('click', () => {
+            if (videoLoop.paused) {
+                videoLoop.play();
+                experienceStarted = true;
+            }
+        }, { once: true });
 
         let experienceStarted = false;
 
